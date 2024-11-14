@@ -1,0 +1,24 @@
+name: CD
+
+permissions:
+  id-token: write
+  contents: read
+
+on:
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        required: true
+        default: 'latest'
+
+jobs:
+  deploy:
+    uses: ./.github/workflows/reusable-cd.yaml
+    with:
+     AWS_REGION: ${{ vars.AWS_REGION }}
+     AWS_ACCOUNT_ID: ${{ vars.AWS_ACCOUNT_ID }}
+     Environment: 'sample'
+     ROLE_TO_ASSUME: ${{ vars.OIDC_ROLE_TO_ASSUME }}
+     ECR_REPOSITORY: ${{ vars.ECR_REPOSITORY }}
+     DOCKER_TAG: ${{ github.event.inputs.image_tag }}
+     FILE_PATH: 'cdk-infra'

@@ -1,0 +1,71 @@
+name: Reusable CI
+
+permissions:
+  id-token: write
+  contents: read
+
+on:
+ workflow_call:
+  inputs:
+    AWS_REGION:
+      required: true
+      type: string
+    AWS_ACCOUNT_ID:
+      required: true
+      type: string
+    ECR_REPOSITORY:
+      required: true
+      type: string
+    ROLE_TO_ASSUME:
+      required: true
+      type: string
+    DOCKER_TAG:
+      required: true
+      type: string
+    FILE_PATH:
+      required: true
+      type: string
+
+jobs:
+  build: 
+    name: Build and Push to ECR
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Configure AWS credentials
+        id: login-aws
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::${{ inputs.AWS_ACCOUNT_ID }}:role/${{ inputs.ROLE_TO_ASSUME }}
+          aws-region: ${{ inputs.AWS_REGION }}
+          role-session-name: GitHubActionsSessionECRPush
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build Docker Image
+        run: |
+          cd ${{ inputs.FILE_PATH }}
+          docker build --platform linux/arm64 -t app .
+        shell: bash
+    
+      - name: Tag Docker Image
+        run: |
+          cd ${{ inputs.FILE_PATH }}
+          docker tag app:latest ${{ inputs.AWS_ACCOUNT_ID }}.dkr.ecr.${{ inputs.AWS_REGION }}.amazonaws.com/${{ inputs.ECR_REPOSITORY }}:${{ inputs.DOCKER_TAG}}
+        shell: bash
+      
+      - name: Push Image to ECR
+        run: |
+          docker push ${{ inputs.AWS_ACCOUNT_ID }}.dkr.ecr.${{ inputs.AWS_REGION }}.amazonaws.com/${{ inputs.ECR_REPOSITORY }}:${{ inputs.DOCKER_TAG}}
+        shell: bash

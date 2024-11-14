@@ -1,0 +1,67 @@
+name: Reusable Deploy
+
+permissions:
+  id-token: write
+  contents: read
+
+on:
+ workflow_call:
+  inputs:
+    AWS_REGION:
+      required: true
+      type: string
+    AWS_ACCOUNT_ID:
+      required: true
+      type: string
+    ROLE_TO_ASSUME:
+      required: true
+      type: string
+    ECR_REPOSITORY:
+      required: true
+      type: string
+    Environment:
+      required: true
+      type: string
+    FILE_PATH:
+      required: true
+      type: string
+    DOCKER_TAG:
+      required: true
+      type: string
+
+jobs:
+  deploy:
+    name: Deploy
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.Environment }}
+
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        id: login-aws
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::${{ inputs.AWS_ACCOUNT_ID }}:role/${{ inputs.ROLE_TO_ASSUME }}
+          aws-region: ${{ inputs.AWS_REGION }}
+          role-session-name: GitHubActionsSession
+      
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "18"
+
+      - name: Install AWS CDK using npm
+        run: |
+          npm install -g aws-cdk
+
+      - name: CDK Synthesize 
+        run: |
+          cd ${{ inputs.FILE_PATH }}
+          ENV=${{ inputs.Environment }} IMAGETAG=${{ inputs.DOCKER_TAG}} ECR_ARN="arn:aws:ecr:${{ inputs.AWS_REGION }}:${{ inputs.AWS_ACCOUNT_ID }}:repository/${{ inputs.ECR_REPOSITORY }}" cdk synth
+
+      - name: Deploy CDK Stack
+        run: |
+          cd ${{ inputs.FILE_PATH }}
+          ENV=${{ inputs.Environment }} IMAGETAG=${{ inputs.DOCKER_TAG}} ECR_ARN="arn:aws:ecr:${{ inputs.AWS_REGION }}:${{ inputs.AWS_ACCOUNT_ID }}:repository/${{ inputs.ECR_REPOSITORY }}" cdk deploy --require-approval never
