@@ -42,7 +42,7 @@ This solution is ideal for teams looking to scale their serverless applications 
 aws ecr create-repository --repository-name sample-repo
 ```
 **1.2 Create GitHub OIDC Role in Central Account**
-- follow this [link](https://docs.github.com/en/actions/security-for-github-actions/security-hardening-your-deployments/configuring-openid-connect-in-amazon-web-services)
+- Follow this [link](https://docs.github.com/en/actions/security-for-github-actions/security-hardening-your-deployments/configuring-openid-connect-in-amazon-web-services)
 - Once Role is created, add necessary permissions to the role. For example, ECR permissions, SSM Permissions etc.
 
 **1.3 Bootstrap CDK in Target Accounts**
@@ -87,6 +87,20 @@ ENV=<environment> IMAGETAG=<image_tag> ECR_ARN=<ecr_repo_arn> cdk synth
 **3.2 Deploy AWS CDK Golang Stack**
 ```bash
 ENV=<environment> IMAGETAG=<image_tag> ECR_ARN=<ecr_repo_arn> cdk deploy --require-approval never
+```
+# 4. Sample input.yml file
+```bash
+LambdaVariables:
+    LambdaEnvVar : 
+      ENV : "<ENV like Dev, Stage and Prod>"
+      LOG_LEVEL : "<LOG_LEVEL>" 
+      APP_NAME : "<APP Name>"
+      APP_VERSION : "<APP Version>"
+    Repo: "<ECR ARN>"
+    Name: "<ECR Repository Name>"
+    Account_Number: "<Target AWS Accout ID>"
+    Region: "<Target AWS Acount Region>"
+    Timeout: <Lambda Timeout>
 ```
 
 ## Security
